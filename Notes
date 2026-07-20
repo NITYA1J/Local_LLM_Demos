@@ -1,0 +1,3 @@
+For Starting
+chmod a+x setup_ollama.sh
+jovyan@jupyter-nitya1j:~/Local_LLM_Demos$ ./setup_ollama.sh
