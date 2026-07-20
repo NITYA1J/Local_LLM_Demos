@@ -202,7 +202,7 @@ def _(mo):
         label="temperature", show_value=True,
     )
     temp_prompt = mo.ui.text(
-        value="Write a one-sentence bedtime story about a sleepy robot.",
+        value="Write a one-sentence bedtime story about a sleepy professor.",
         label="prompt",
         full_width=True,
     )
@@ -333,7 +333,7 @@ def _(mo):
         label="temperature", show_value=True,
     )
     seed_prompt = mo.ui.text(
-        value="Invent a name and one-line backstory for a friendly dragon.",
+        value="Invent a name and one-line backstory for a time traveling professor.",
         label="prompt",
         full_width=True,
     )
@@ -408,7 +408,7 @@ def _(mo):
         full_width=True,
     )
     length_prompt = mo.ui.text(
-        value="List three tips for studying effectively.",
+        value="List three tips for using AI effectively.",
         label="prompt",
         full_width=True,
     )
@@ -488,7 +488,7 @@ def _(call_ollama, chat_model, exercise_button, mo):
         "num_predict": None,   # TODO: e.g. 40
     }
 
-    my_prompt = "Give me a fun team name for a robotics club."  # change if you like
+    my_prompt = "Give me a fun team name for an environmental engineering student club."  # change if you like
 
     # Drop any blanks you haven't filled in yet so the call still works.
     _clean_options = {k: v for k, v in my_options.items() if v is not None}

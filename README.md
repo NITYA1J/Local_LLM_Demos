@@ -34,6 +34,12 @@ modules as ordinary Python scripts you can run with `python <file>.py`. No
 notebook software, and for two of the three, nothing to install beyond the
 standard library.
 
+☁️ **No Hub access, or can't install anything?** The `Colab/` folder has the
+whole workshop — including the RAG session — as **Google Colab notebooks that
+install everything themselves**. All you need is a Google account and a
+browser. See [Fallback: Google Colab](#fallback-google-colab) below, and note
+the privacy caveat there before using it with anything sensitive.
+
 ---
 
 ## Quick start
@@ -94,53 +100,68 @@ If that prints your models, you're set. Only if it reports a connection error
 nohup ollama serve > ~/ollama/ollama.log 2>&1 & disown
 ```
 
-**3. Pick your path** — the same material is available two ways:
+**3. Pick your path** — the same material is available three ways:
 
-| | Interactive notebooks | Plain Python scripts |
-|---|---|---|
-| **Where** | this folder | `Python Scripts/` |
-| **Run with** | `marimo edit <file>.py` | `python <file>.py` |
-| **Feels like** | click buttons, drag sliders, see results update | read the code, edit values, re-run |
-| **Needs** | marimo — already installed on the NC State Hub | usually nothing — see below |
+| | Interactive notebooks | Plain Python scripts | Google Colab |
+|---|---|---|---|
+| **Where** | this folder | `Python Scripts/` | `Colab/` |
+| **Run with** | `marimo edit <file>.py` | `python <file>.py` | open the `.ipynb` in Colab |
+| **Feels like** | click buttons, drag sliders, watch results update | read the code, edit values, re-run | run cells top to bottom, edit variables |
+| **Needs** | marimo — already on the NC State Hub | usually nothing | a Google account; it installs the rest itself |
+| **Private?** | yes | yes | **no** — runs on Google's servers |
 
-Both cover the same material. Use the notebooks if you want to *play* with the
-model; use the scripts if you want to *read and edit* the code, or if you'd
-rather not use marimo at all. Neither is a prerequisite for the other.
+All three cover the same material. Use the **notebooks** if you want to *play*
+with the model; the **scripts** if you want to *read and edit* the code, or
+would rather not use marimo; and **Colab** if the Hub is unavailable or you
+can't install anything locally. None is a prerequisite for the others.
 
-> **Yes, the filenames are identical in both places** — that's deliberate, so
-> each module is easy to match up. The *folder* is the difference: notebooks
-> sit in the top folder, scripts in `Python Scripts/`. If a command isn't
-> doing what you expect, check which directory you're in.
+> **Note the naming.** The notebooks in this folder carry numeric prefixes
+> (`1_`, `2_`, `3_`) so they sort into teaching order in a file browser. The
+> scripts in `Python Scripts/` use the same names without the prefix. Module 2
+> is `2_local_llm_demo.py` up here and `local_llm_demo.py` in there — same
+> material either way.
 
-Run them in order — `intro_prompting.py`, then `local_llm_demo.py`, then
-`structured_output.py`.
+Run them in order — `1_intro_prompting.py`, then `2_local_llm_demo.py`,
+then `3_structured_output.py`. (The numeric prefixes keep them in order in
+the file browser; the scripts in `Python Scripts/` keep the plain names.)
 
 ### Fallback: Google Colab
 
-If the Hub is unavailable, the `Colab/` folder has the whole workshop as two
-self-contained Jupyter notebooks. Each installs Ollama and pulls its own
-models, so they need nothing else from this folder — you can open either on
-its own.
+If the Hub is unavailable — or you're on a machine where you can't install
+anything — the `Colab/` folder has the whole workshop as self-contained
+Jupyter notebooks. Each one installs Ollama and pulls its own models, so they
+need nothing else from this folder. **Upload either notebook to
+[Colab](https://colab.research.google.com) and run the cells top to bottom.**
 
-| Notebook | Covers |
-| --- | --- |
-| `prompting_local_llm_colab.ipynb` | Modules 1–3: parameters, system prompts, model limits, tool use, structured output |
-| `rag_local_llm_colab.ipynb` | The RAG session: chunking, embeddings, retrieval, generation |
-| `corpus.zip` | The document corpus, for the RAG notebook's manual-upload fallback |
+| Notebook | Covers | Replaces |
+| --- | --- | --- |
+| `prompting_local_llm_colab.ipynb` | Parameters, system prompts, model limits, tool use, structured output | modules 1–3 in this folder |
+| `rag_local_llm_colab.ipynb` | Chunking, embeddings, retrieval, generation | the *Local LLM and RAG* session |
+| `corpus.zip` | The document corpus — only needed for the RAG notebook's manual-upload fallback | `corpus/` in the RAG folder |
 
-Two things to know. Colab has no marimo, so sliders and buttons become
-variables you edit and re-run. And **it is not private** — the model runs on a
-Google VM, so prompts (and, in the RAG notebook, your documents) leave your
-machine. That's the one claim from the modules that doesn't survive the move
-to Colab, and both notebooks say so up front.
+Three things to know before you use it:
+
+1. **Turn on the GPU** — *Runtime → Change runtime type → T4 GPU*. It works
+   without one, just slowly.
+2. **Nothing persists.** Colab wipes the machine between sessions, so you'll
+   re-run the setup cells (and re-download ~2 GB of models) each time.
+3. ⚠️ **It is not private.** The model runs on a Google VM, so your prompts —
+   and in the RAG notebook, your documents — leave your machine. This is the
+   one claim from the workshop that doesn't survive the move to Colab. Both
+   notebooks say so up front. If you're planning to point RAG at genuinely
+   sensitive documents, use the Hub or your own machine instead.
 
 ---
 
 ## The material
 
-Three modules, in a sensible order. Each one is a single self-contained file.
+Three modules, in a sensible order. Each one is a single self-contained file,
+available as a marimo notebook (this folder) and as a plain script
+(`Python Scripts/`). In Colab, all three live together in
+`Colab/prompting_local_llm_colab.ipynb` as Parts B, C, and D — one notebook, so
+you only pay the setup cost once.
 
-### 1. `intro_prompting.py` — prompting and parameters
+### 1. `1_intro_prompting.py` — prompting and parameters
 
 **Start here.** The gentlest possible introduction. Two ideas only:
 
@@ -161,7 +182,7 @@ The parameters covered, and what each one does:
 Ends with a short fill-in-the-blank exercise where you build the `options`
 dictionary yourself.
 
-### 2. `local_llm_demo.py` — prompts, limits, and tools
+### 2. `2_local_llm_demo.py` — prompts, limits, and tools
 
 The core module, in four parts:
 
@@ -181,7 +202,7 @@ The core module, in four parts:
    run real Python, and hand the exact result back. This is what "function
    calling" is, written out by hand.
 
-### 3. `structured_output.py` — controlling the output format
+### 3. `3_structured_output.py` — controlling the output format
 
 How to get clean, machine-readable data instead of prose. Built as a
 four-step progression, where each step fixes the previous one's weakness:
@@ -191,7 +212,21 @@ four-step progression, where each step fixes the previous one's weakness:
 | naive prompt | maybe-valid text | never on its own — it's the baseline that breaks |
 | `format: "json"` | valid JSON, any shape | quick JSON when the shape can vary |
 | JSON Schema | valid JSON, *your* shape | reliable extraction into known fields |
-| Pydantic | typed, validated object | production code that consumes the data |
+| Pydantic | typed, validated objects | production code that consumes the data |
+
+The Pydantic step is where the point lands: it runs **one schema over six
+sentences** that say the same kind of thing in very different ways, and
+tabulates the results. The table comes with a computed mean age — which only
+works because `age` came back as a real `int`, from text that was completely
+unstructured a moment earlier.
+
+Two of those six sentences are deliberately awkward. One gives a birth year
+instead of an age, so the model has to do arithmetic (the weakness module 2
+demonstrates). The other never mentions a city at all — but `city` is a
+required field, so the model is obliged to invent one. That sets up the lesson
+worth taking away:
+
+> **Structured output guarantees the shape of an answer, not its truth.**
 
 Ends with an exercise where you write a JSON Schema yourself.
 
@@ -218,8 +253,13 @@ requirements.txt` gets you `marimo`, plus `pydantic` for the last section of
 
 See `Python Scripts/requirements.txt` if you want that one dependency.
 
+**Colab** (`Colab/`) — nothing to install. The notebooks install Ollama, pull
+their own models, and `pip install` anything else they need, all in their
+setup cells.
+
 Ollama itself is a separate, non-pip install — that's what `setup_ollama.sh`
-is for.
+is for (or, on your own machine,
+[`Local_LLM_Guide.md`](Local_LLM_Guide.md)).
 
 ---
 
@@ -229,6 +269,7 @@ is for.
 Local LLM/
 ├── README.md                  you are here
 ├── Local_LLM_Guide.md         setting up Ollama on your own machine
+├── Local_LLM_Workshop_Slides.pptx  the workshop slide deck
 ├── .gitignore
 ├── setup_ollama.sh            no-sudo Ollama install + model pull (Linux)
 ├── Colab/
@@ -236,9 +277,9 @@ Local LLM/
 │   ├── rag_local_llm_colab.ipynb         RAG session, self-contained
 │   └── corpus.zip                        corpus for the RAG upload fallback
 ├── requirements.txt           dependencies for the notebooks
-├── intro_prompting.py         module 1 — notebook
-├── local_llm_demo.py          module 2 — notebook
-├── structured_output.py       module 3 — notebook
+├── 1_intro_prompting.py       module 1 — notebook
+├── 2_local_llm_demo.py        module 2 — notebook
+├── 3_structured_output.py     module 3 — notebook
 └── Python Scripts/
     ├── requirements.txt       dependencies for the scripts
     ├── intro_prompting.py     module 1 — script
@@ -282,6 +323,15 @@ is still in place.
 check that you're in the workshop environment/kernel. If you'd rather not
 troubleshoot it mid-session, `Python Scripts/` runs the same material with
 plain `python` and no marimo at all.
+
+**The Hub is down / I can't get anything working.** Switch to `Colab/` — those
+notebooks need only a browser and a Google account, and set up everything
+themselves. Read the privacy caveat in
+[Fallback: Google Colab](#fallback-google-colab) first.
+
+**In Colab: the Ollama install fails.** Make sure you ran the `zstd` cell
+before the install cell — Colab's image doesn't include `zstd`, and Ollama's
+installer needs it to unpack. Both notebooks have that cell first in Part A.
 
 ---
 

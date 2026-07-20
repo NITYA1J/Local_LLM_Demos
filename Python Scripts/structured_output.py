@@ -15,7 +15,8 @@ It walks through four steps, each fixing the previous one's weakness:
     Step 1  Naive prompt ......... just ASK for JSON. Watch it break.
     Step 2  format="json" ........ Ollama guarantees VALID JSON.
     Step 3  JSON Schema .......... guarantees valid JSON in YOUR shape.
-    Step 4  Pydantic ............. parses it into a TYPED, VALIDATED object.
+    Step 4  Pydantic ............. parses MANY sentences into a TYPED,
+                                   VALIDATED table you can compute on.
 
 HOW TO RUN
 ----------
@@ -274,27 +275,50 @@ if PYDANTIC_AVAILABLE:
     #
     # (Deliberately no docstring: pydantic copies docstrings into the generated
     # schema as a "description" field, which just adds noise when we print it.)
-    class Product(BaseModel):
+    class Person(BaseModel):
         name: str
-        price_usd: float
-        in_stock: bool
-        tags: list[str]
+        age: int
+        city: str
+        occupation: str
+
+
+# Six sentences carrying the same KIND of information, written very
+# differently. The last two are deliberately awkward:
+#
+#   5. gives a birth year instead of an age, so the model has to do
+#      arithmetic - the exact weakness Step 3 of the local_llm_demo shows.
+#   6. never mentions a city at all. But `city` is a required str, so the
+#      model is obliged to put SOMETHING there. Watch what it invents.
+SENTENCES = [
+    "Maria is a 34-year-old software engineer who lives in Austin, Texas.",
+    "Dr. James Okonkwo, 41, practices cardiology at a hospital in Seattle.",
+    "You'll usually find Yuki Tanaka teaching high school chemistry in "
+    "Portland - she just turned 29 last month.",
+    "After twelve years in Chicago, accountant Priya Raman (age 38) says "
+    "she can't imagine leaving.",
+    "Born in 1990, Tom Alvarez now works as a graphic designer in Miami.",
+    "Ahmed Hassan, a 52-year-old architect, was interviewed about the new "
+    "library design.",
+]
 
 
 def step_4_pydantic():
-    """Use a Pydantic class to both constrain the output AND validate it.
+    """Run one schema over MANY sentences and tabulate the results.
 
     Step 3 gets the right shape on the wire, but you still end up with a plain
-    dict. Pydantic goes one step further:
+    dict, from one sentence. Pydantic goes further:
 
-      1. Product.model_json_schema()  generates the schema to constrain output.
-      2. Product.model_validate_json() parses the reply into a real object,
+      1. Person.model_json_schema()  generates the schema to constrain output.
+      2. Person.model_validate_json() parses each reply into a real object,
          raising an error if anything is malformed.
 
-    The payoff is typed access: product.price_usd is a genuine float you can
-    do arithmetic on, not data["price_usd"] of unknown type.
+    But the real reason structured output matters is that it SCALES. Run the
+    same schema over many documents and you get a table you can sort, filter
+    and compute on - from text that started out completely unstructured.
+    That's what this step demonstrates: six messy sentences in, one clean
+    table out, plus a statistic that only works because `age` is a real int.
     """
-    print_header("STEP 4 — Pydantic (typed and validated object)")
+    print_header("STEP 4 — Pydantic (many sentences into one table)")
 
     if not PYDANTIC_AVAILABLE:
         print("[SKIP] pydantic is not installed, so this step can't run.")
@@ -302,41 +326,76 @@ def step_4_pydantic():
         print("Steps 1-3 above don't need it.")
         return
 
-    text_to_extract_from = (
-        "The UltraGrip water bottle costs $24.99, is currently in stock, and "
-        "is great for hiking, cycling, and gym use."
-    )
-    prompt = f"Extract the product details from this text:\n\n{text_to_extract_from}"
-
-    # Generate the JSON Schema straight from the class definition.
-    schema = Product.model_json_schema()
-    print("Schema auto-generated from the Product class:")
+    # Generate the JSON Schema straight from the class definition, once.
+    # Every call below is constrained by this same schema and validated into
+    # this same class - which is what makes the results line up as a table.
+    schema = Person.model_json_schema()
+    print("Schema auto-generated from the Person class:")
     print(json.dumps(schema, indent=2))
+    print(f"\nExtracting {len(SENTENCES)} sentences - one model call each.\n")
 
-    try:
-        raw_reply = call_ollama(prompt, response_format=schema)
-    except urllib.error.HTTPError as error:
-        print(f"\n[FAIL] Ollama rejected the schema (HTTP {error.code}) — likely too old.")
+    people = []
+    rows = []
+
+    for number, sentence in enumerate(SENTENCES, 1):
+        prompt = f"Extract the person's details from this text:\n\n{sentence}"
+        try:
+            raw_reply = call_ollama(prompt, response_format=schema)
+            person = Person.model_validate_json(raw_reply)
+            people.append(person)
+            rows.append((number, person.name, str(person.age), person.city,
+                         person.occupation))
+        except ValidationError as error:
+            # Validation doing its job: a malformed reply is caught here
+            # rather than silently poisoning the table.
+            rows.append((number, "(validation failed)", "-", "-",
+                         str(error)[:30]))
+        except urllib.error.HTTPError as error:
+            rows.append((number, "(HTTP error)", "-", f"HTTP {error.code}",
+                         "schema rejected"))
+            if error.code >= 400 and not people:
+                print("Ollama rejected the schema - it may be too old for")
+                print('schema-constrained output. Step 2 (format="json") works.')
+                return
+
+    # --- Print the table ---------------------------------------------------
+    header = ("#", "name", "age", "city", "occupation")
+    widths = [3, 16, 5, 12, 34]
+    print("".join(h.ljust(w) for h, w in zip(header, widths)))
+    print("-" * sum(widths))
+    for row in rows:
+        print("".join(str(c).ljust(w) for c, w in zip(row, widths)))
+
+    if not people:
+        print("\nNo records extracted.")
         return
 
-    try:
-        # Parse AND validate the reply into a real Product object in one step.
-        product = Product.model_validate_json(raw_reply)
-    except ValidationError as error:
-        # This is a feature, not a bug: bad data is caught right here instead
-        # of silently flowing into the rest of your program.
-        print(f"\n[FAIL] Validation caught malformed data: {error}")
-        return
+    # --- The payoff --------------------------------------------------------
+    # `age` is a real int on every row, so we can just compute with it.
+    # No parsing, no casting, no cleaning.
+    ages = [p.age for p in people]
+    cities = sorted({p.city for p in people})
+    print(f"\n{len(people)} records extracted.")
+    print(f"  mean age: {sum(ages) / len(ages):.1f}   (range {min(ages)}-{max(ages)})")
+    print(f"  cities:   {', '.join(cities)}")
+    print(f"  type(person.age) is {type(people[0].age).__name__}, not str -")
+    print("  which is why sum(...)/len(...) just works on text that was")
+    print("  completely unstructured a moment ago.")
 
-    print("\nValidated Product object — now real Python types, not text:")
-    print(f"  product.name      = {product.name!r}        ({type(product.name).__name__})")
-    print(f"  product.price_usd = {product.price_usd!r}   ({type(product.price_usd).__name__})")
-    print(f"  product.in_stock  = {product.in_stock!r}    ({type(product.in_stock).__name__})")
-    print(f"  product.tags      = {product.tags!r}        ({type(product.tags).__name__})")
-
-    # Because these are real types, we can use them directly — no casting.
-    print(f"\n  Arithmetic works: two bottles cost ${product.price_usd * 2:.2f}")
-    print(f"  Iteration works:  {len(product.tags)} tags -> {', '.join(product.tags)}")
+    # --- The two hard cases ------------------------------------------------
+    print("\nNow look at rows 5 and 6:")
+    print("  Row 5 said 'Born in 1990' and never gave an age, so the model")
+    print("    had to subtract. Check whether it got it right - and note the")
+    print("    answer depends on what year the model thinks it is.")
+    print("  Row 6 never mentioned a city at all. But `city` is a required")
+    print("    str, so the model could not return 'unknown' without breaking")
+    print("    the schema. It invented one instead.")
+    print("\n  => Structured output guarantees the SHAPE of an answer, not")
+    print("     its TRUTH. A schema makes results parseable, not correct -")
+    print("     and a confidently wrong value in a clean table looks exactly")
+    print("     like a right one.")
+    print("\n  The fix: declare the field as `city: str | None = None` so the")
+    print("  model can legitimately answer null instead of guessing.")
 
 
 # ---------------------------------------------------------------------------

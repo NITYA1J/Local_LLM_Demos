@@ -135,7 +135,7 @@ def _(list_ollama_models, mo, ollama_up):
 @app.cell
 def _(mo):
     basic_prompt = mo.ui.text_area(
-        value="What's the best way to learn a new language as an adult?",
+        value="What's the best way to learn how to use local LLMs?",
         label="prompt",
         full_width=True,
     )
@@ -218,7 +218,7 @@ def _(SYSTEM_PRESETS, mo, system_preset):
 @app.cell
 def _(mo):
     persona_question = mo.ui.text(
-        value="Should I refactor this messy code now, or ship the feature first?",
+        value="Should I update my existing course notes or start from scratch?",
         label="user prompt (held fixed while you try different system prompts)",
         full_width=True,
     )
@@ -287,11 +287,11 @@ def _(mo):
 def _(mo):
     BREAKDOWN_EXAMPLES = {
         "Letter counting (tokenization blindness)": {
-            "prompt": "How many times does the letter 'r' appear in the word 'strawberry'?",
+            "prompt": "How many times does the letter 'r' appear in the word 'tangential'?",
             "why": (
                 "LLMs don't see individual letters — text is split into "
                 "sub-word **tokens** before the model ever sees it, so "
-                "'strawberry' might be 2-3 opaque chunks, not 10 characters. "
+                "'tangential' might be 2-3 opaque chunks, not 10 characters. "
                 "Character-level counting requires reasoning the model was "
                 "never directly trained to do well, and it gets worse as "
                 "model size shrinks."
@@ -307,7 +307,7 @@ def _(mo):
             ),
         },
         "Knowledge cutoff (recent events)": {
-            "prompt": "Who won the most recent Super Bowl, and what was the final score?",
+            "prompt": "Who won the most recent World Cup, and what was the final score?",
             "why": (
                 "The model only knows what was in its training data, which "
                 "has a cutoff date. Ask about anything after that date and "

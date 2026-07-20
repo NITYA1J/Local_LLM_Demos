@@ -1,40 +1,7 @@
 import marimo
 
-__generated_with = "0.23.10"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
-
-
-@app.cell(hide_code=True)
-def _():
-    # ---- Imports and setup -------------------------------------------------
-    # Same philosophy as the rest of this folder: one flat file, no helper
-    # package, raw HTTP to Ollama with the standard library. The only new
-    # dependency is pydantic, used only in the last section — and it's
-    # imported defensively so the notebook still runs without it.
-    import marimo as mo
-    import json
-    import os
-    import urllib.error
-    import urllib.request
-
-    try:
-        from pydantic import BaseModel, ValidationError
-        PYDANTIC_AVAILABLE = True
-    except Exception:
-        BaseModel = None
-        ValidationError = Exception
-        PYDANTIC_AVAILABLE = False
-
-    OLLAMA_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-    return (
-        BaseModel,
-        OLLAMA_URL,
-        PYDANTIC_AVAILABLE,
-        ValidationError,
-        json,
-        mo,
-        urllib,
-    )
 
 
 @app.cell(hide_code=True)
@@ -61,6 +28,13 @@ def _(mo):
     new ingredient is one extra field in the request body: `format`.
     """)
     return
+
+
+@app.cell
+def _():
+    import marimo as mo
+
+    return (mo,)
 
 
 @app.cell(hide_code=True)
@@ -134,7 +108,7 @@ def _(OLLAMA_URL, json, urllib):
         except Exception:
             return False
 
-    return (call_ollama, list_ollama_models, ollama_up)
+    return call_ollama, list_ollama_models, ollama_up
 
 
 @app.cell
@@ -376,20 +350,31 @@ def _(
 def _(mo):
     mo.md(r"""
     ---
-    ## 4 · Pydantic — a typed, *validated* Python object
+    ## 4 · Pydantic — many sentences into one table
 
     JSON Schema gets you the right shape on the wire. **Pydantic** takes the
     last step: you define the shape once as a typed Python class, let it
     *generate* the schema for you, and then *validate* the reply back into a
-    real object — so downstream code gets `product.price_usd` (a `float`),
-    not `data["price_usd"]` (a `who-knows`).
+    real object — so downstream code gets `person.age` (an `int`), not
+    `data["age"]` (a `who-knows`).
 
     Two payoffs over raw schema:
 
-    - **One source of truth** — `Product.model_json_schema()` produces the
+    - **One source of truth** — `Person.model_json_schema()` produces the
       schema, so the class and the constraint can't drift apart.
     - **Validation** — if anything slips through malformed, `model_validate`
       raises instead of silently handing you bad data.
+
+    ### Why this is the actual point
+
+    So far we've extracted one record from one sentence. That's a demo. The
+    reason structured output matters is that it **scales**: run the same
+    schema over a hundred documents and you get a table you can sort, filter,
+    and compute on — from text that started out completely unstructured.
+
+    Below, the same `Person` schema runs over six sentences that all say
+    roughly the same *kind* of thing in very different ways. Two of them are
+    deliberately awkward — watch those rows.
     """)
     return
 
@@ -398,19 +383,46 @@ def _(mo):
 def _(BaseModel, PYDANTIC_AVAILABLE):
     # Define the target shape as a typed class — but only if pydantic is
     # installed, so the notebook still loads without it.
+    #
+    # (Deliberately no docstring: pydantic copies class docstrings into
+    # model_json_schema() as a "description" field, which is just noise when
+    # the schema is printed.)
     if PYDANTIC_AVAILABLE:
-        class Product(BaseModel):
+        class Person(BaseModel):
             name: str
-            price_usd: float
-            in_stock: bool
-            tags: list[str]
+            age: int
+            city: str
+            occupation: str
     else:
-        Product = None
-    return (Product,)
+        Person = None
+    return (Person,)
 
 
 @app.cell
-def _(PYDANTIC_AVAILABLE, Product, json, mo):
+def _():
+    # Six sentences carrying the same KIND of information, written very
+    # differently. The last two are the interesting ones:
+    #
+    #   5. states a birth year instead of an age - the model has to do
+    #      arithmetic, which section 3 showed it is bad at.
+    #   6. never mentions a city at all - but the schema marks city as
+    #      required, so the model has to put SOMETHING there.
+    SENTENCES = [
+        "Maria is a 34-year-old software engineer who lives in Austin, Texas.",
+        "Dr. James Okonkwo, 41, practices cardiology at a hospital in Seattle.",
+        "You'll usually find Yuki Tanaka teaching high school chemistry in "
+        "Portland - she just turned 29 last month.",
+        "After twelve years in Chicago, accountant Priya Raman (age 38) says "
+        "she can't imagine leaving.",
+        "Born in 1990, Tom Alvarez now works as a graphic designer in Miami.",
+        "Ahmed Hassan, a 52-year-old architect, was interviewed about the new "
+        "library design.",
+    ]
+    return (SENTENCES,)
+
+
+@app.cell
+def _(PYDANTIC_AVAILABLE, Person, SENTENCES, json, mo):
     if not PYDANTIC_AVAILABLE:
         _view = mo.callout(
             mo.md(
@@ -420,77 +432,142 @@ def _(PYDANTIC_AVAILABLE, Product, json, mo):
             ),
             kind="warn",
         )
-        pydantic_prompt = None
         pydantic_button = None
     else:
-        pydantic_prompt = mo.ui.text_area(
-            value=(
-                "Extract the product details from this text:\n\n"
-                "The UltraGrip water bottle costs $24.99, is currently in "
-                "stock, and is great for hiking, cycling, and gym use."
-            ),
-            label="prompt",
-            full_width=True,
+        pydantic_button = mo.ui.run_button(
+            label=f"▶ Extract all {len(SENTENCES)} sentences into a table"
         )
-        pydantic_button = mo.ui.run_button(label="▶ Extract into a Product object")
-        _schema_preview = json.dumps(Product.model_json_schema(), indent=2)
+        _schema_preview = json.dumps(Person.model_json_schema(), indent=2)
+        _sentence_list = "\n".join(f"{i}. {s}" for i, s in enumerate(SENTENCES, 1))
         _view = mo.vstack([
-            mo.md(f"**Schema auto-generated from the `Product` class:**\n\n```json\n{_schema_preview}\n```"),
-            pydantic_prompt,
+            mo.md(
+                f"**Schema auto-generated from the `Person` class:**\n\n"
+                f"```json\n{_schema_preview}\n```"
+            ),
+            mo.md(f"**The six sentences:**\n\n{_sentence_list}"),
+            mo.md(
+                "_One model call per sentence — six calls, so give it a few "
+                "seconds._"
+            ),
             pydantic_button,
         ])
     _view
-    return pydantic_button, pydantic_prompt
+    return (pydantic_button,)
 
 
 @app.cell
 def _(
     PYDANTIC_AVAILABLE,
-    Product,
+    Person,
+    SENTENCES,
     ValidationError,
     call_ollama,
     chat_model,
     mo,
     pydantic_button,
-    pydantic_prompt,
     urllib,
 ):
     mo.stop(not PYDANTIC_AVAILABLE, mo.md("_(pydantic not installed — see the note above.)_"))
-    mo.stop(not pydantic_button.value, mo.md("_Click ▶ to extract and validate into a typed object._"))
+    mo.stop(not pydantic_button.value, mo.md("_Click ▶ to extract all six sentences._"))
 
-    try:
-        _raw = call_ollama(
-            pydantic_prompt.value,
-            model=chat_model.value,
-            response_format=Product.model_json_schema(),
-        )
-        # Validate the raw JSON string straight into a typed Product instance.
-        _product = Product.model_validate_json(_raw)
-        _out = mo.vstack([
-            mo.md("**Validated `Product` object — now typed Python, not text:**"),
-            mo.callout(
-                mo.md(
-                    f"- `product.name` → `{_product.name!r}` ({type(_product.name).__name__})\n"
-                    f"- `product.price_usd` → `{_product.price_usd!r}` ({type(_product.price_usd).__name__})\n"
-                    f"- `product.in_stock` → `{_product.in_stock!r}` ({type(_product.in_stock).__name__})\n"
-                    f"- `product.tags` → `{_product.tags!r}` ({type(_product.tags).__name__})"
-                ),
-                kind="success",
-            ),
-            mo.md("_These are real Python types — you can do math on `price_usd` and iterate `tags` directly._"),
-        ])
-    except (ValidationError, ValueError) as e:
-        _out = mo.callout(
-            mo.md(f"❌ **Validation failed:** {e}\n\nThat's the point — bad data is caught here instead of downstream."),
-            kind="danger",
-        )
-    except urllib.error.HTTPError as e:
-        _out = mo.callout(
-            mo.md(f"❌ **Ollama rejected the schema (HTTP {e.code})** — server likely too old for schema output."),
-            kind="danger",
-        )
+    # One call per sentence. Each reply is constrained by the SAME schema and
+    # validated into the SAME class, which is what makes the results
+    # line up into a table at all.
+    _schema = Person.model_json_schema()
+    _people = []      # successfully validated Person objects
+    _rows = []        # display rows, including any failures
+    _errors = 0
 
-    _out
+    for _n, _sentence in enumerate(SENTENCES, 1):
+        try:
+            _raw = call_ollama(
+                f"Extract the person's details from this text:\n\n{_sentence}",
+                model=chat_model.value,
+                response_format=_schema,
+            )
+            _person = Person.model_validate_json(_raw)
+            _people.append(_person)
+            _rows.append({
+                "#": _n,
+                "name": _person.name,
+                "age": _person.age,
+                "city": _person.city,
+                "occupation": _person.occupation,
+            })
+        except (ValidationError, ValueError) as _e:
+            # Validation is doing its job: a malformed reply is caught here
+            # rather than silently poisoning the table.
+            _errors += 1
+            _rows.append({
+                "#": _n, "name": "(failed)", "age": None,
+                "city": "(failed)", "occupation": str(_e)[:40],
+            })
+        except urllib.error.HTTPError as _e:
+            _errors += 1
+            _rows.append({
+                "#": _n, "name": "(HTTP error)", "age": None,
+                "city": f"HTTP {_e.code}", "occupation": "schema rejected",
+            })
+
+    # This is the payoff: `age` is a real int on every row, so we can just
+    # compute with it. No parsing, no casting, no cleaning.
+    if _people:
+        _ages = [p.age for p in _people]
+        _stats = (
+            f"**{len(_people)} records extracted.** "
+            f"Mean age **{sum(_ages) / len(_ages):.1f}**, "
+            f"range **{min(_ages)}–{max(_ages)}**. "
+            f"Cities: {', '.join(sorted({p.city for p in _people}))}."
+        )
+    else:
+        _stats = "_No records extracted._"
+
+    mo.vstack([
+        mo.md("**Six sentences → one table:**"),
+        mo.ui.table(_rows, selection=None),
+        mo.callout(mo.md(_stats), kind="success" if not _errors else "warn"),
+        mo.md(
+            "_That summary line is the whole point: `age` came back as a real "
+            "`int` on every row, so `sum(...) / len(...)` just works. No "
+            "parsing, no casting, no cleaning — the text was unstructured "
+            "when it went in._"
+        ),
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Now look at rows 5 and 6
+
+    The first four sentences are just phrasing variations, and the model
+    handles them. The last two are where it gets interesting:
+
+    **Row 5 — "Born in 1990."** The sentence never states an age, so the model
+    has to subtract. That's the arithmetic weakness from section 3, now buried
+    inside an extraction task where it's much harder to notice. Check whether
+    the number is right — and note it depends on what year the model *thinks*
+    it is.
+
+    **Row 6 — Ahmed Hassan.** The sentence never mentions a city. But `city`
+    is `str`, not `str | None`, and it's in the schema's `required` list — so
+    the model is *obliged* to produce one. It cannot return "unknown" without
+    breaking the schema, so it invents something plausible.
+
+    That's the lesson worth carrying out of this module:
+
+    > **Structured output guarantees the shape of an answer, not its truth.**
+
+    A schema makes results *parseable*, not *correct*. It can even make errors
+    harder to spot, because a confidently wrong value in a clean table looks
+    exactly like a right one.
+
+    **The fix** is to let the schema express "not present." Declare the field
+    as `city: str | None = None` and drop it from `required`, and a
+    well-behaved model can return `null` instead of guessing. Worth trying:
+    change the `Person` class above and re-run.
+    """)
     return
 
 
