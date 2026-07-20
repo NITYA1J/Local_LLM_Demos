@@ -1,3 +1,5 @@
 For Starting
 chmod a+x setup_ollama.sh
 jovyan@jupyter-nitya1j:~/Local_LLM_Demos$ ./setup_ollama.sh
+ollama run llama3.2:3b (To run with the Model)
+Marimo --> Local_LLM_Demo
