@@ -1,0 +1,15 @@
+# Python / marimo build artifacts
+__pycache__/
+*.pyc
+.marimo.lock
+__marimo__/
+
+# Ollama models — large binaries, installed locally by setup_ollama.sh
+ollama-models/
+.ollama/
+
+# Internal working notes, not part of the published material
+handoff.md
+
+# OS cruft
+.DS_Store

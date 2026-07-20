@@ -1,0 +1,17 @@
+# Dependencies for the plain-Python scripts in this folder.
+#
+# Note these differ from the notebooks one level up: the scripts do NOT need
+# marimo. Two of the three need nothing at all beyond the standard library.
+#
+#   intro_prompting.py .... standard library only (urllib, json) - no install
+#   local_llm_demo.py ..... standard library only (urllib, json, re) - no install
+#   structured_output.py .. needs pydantic, but ONLY for its final section;
+#                           the first three sections run without it and the
+#                           script skips the last one with a helpful message.
+#
+# So: if you only want the first two scripts, you can skip this file entirely.
+pydantic>=2
+
+# Ollama itself (https://ollama.com) is a separate, non-pip install - it's
+# what actually runs the model. See ../setup_ollama.sh for a no-sudo install
+# script, or if you already have Ollama: `ollama pull llama3.2:3b`.

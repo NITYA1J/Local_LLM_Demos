@@ -1,0 +1,18 @@
+# Dependencies for the three marimo notebooks in this folder. They talk to
+# Ollama's HTTP API using only the standard library (urllib, json), so marimo
+# itself is the main requirement.
+#
+# On the NC State JupyterHub, marimo is already configured - you don't need
+# to install anything. This file is for running the notebooks elsewhere.
+#
+# For the plain-Python versions, see Python Scripts/requirements.txt (they
+# need no marimo at all).
+marimo>=0.23
+
+# Only needed for the last section of structured_output.py (Pydantic
+# validation). The other two notebooks run without it.
+pydantic>=2
+
+# Ollama itself (https://ollama.com) is a separate, non-pip install - it's
+# what actually runs the chat model. See setup_ollama.sh for a no-sudo
+# install script, or if you already have Ollama: `ollama pull llama3.2:3b`.
