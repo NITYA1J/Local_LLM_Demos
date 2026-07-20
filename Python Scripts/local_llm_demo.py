@@ -378,7 +378,7 @@ def step_4_tool_use():
     answer = ask_with_calculator(question)
     print(f"\n  Final answer: {answer.strip()}")
     if str(correct_answer) in answer:
-        print(f"  -> CORRECT. Real Python did the math, not the model.")
+        print("  -> CORRECT. Real Python did the math, not the model.")
     else:
         print("  -> The number didn't survive into the final answer; small")
         print("     models sometimes reword it. The tool result was still exact.")

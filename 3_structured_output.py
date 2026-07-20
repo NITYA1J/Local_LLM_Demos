@@ -30,11 +30,37 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
+    # ---- Imports and setup -------------------------------------------------
+    # Same philosophy as the rest of this folder: one flat file, no helper
+    # package, raw HTTP to Ollama with the standard library. The only new
+    # dependency is pydantic, used only in the last section — and it's
+    # imported defensively so the notebook still runs without it.
     import marimo as mo
+    import json
+    import os
+    import urllib.error
+    import urllib.request
 
-    return (mo,)
+    try:
+        from pydantic import BaseModel, ValidationError
+        PYDANTIC_AVAILABLE = True
+    except Exception:
+        BaseModel = None
+        ValidationError = Exception
+        PYDANTIC_AVAILABLE = False
+
+    OLLAMA_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+    return (
+        BaseModel,
+        OLLAMA_URL,
+        PYDANTIC_AVAILABLE,
+        ValidationError,
+        json,
+        mo,
+        urllib,
+    )
 
 
 @app.cell(hide_code=True)
