@@ -117,7 +117,7 @@ def step_1_basics():
     """The simplest possible use: one question in, one answer out."""
     print_header("STEP 1 — Ollama basics")
 
-    prompt = "What's the best way to learn a new language as an adult?"
+    prompt = "What's the best way to learn how to use local LLMs?"
     print(f"Prompt: {prompt}\n")
 
     reply = call_ollama(prompt)
@@ -167,7 +167,7 @@ def step_2_system_prompts():
     print_header("STEP 2 — System prompt vs. user prompt")
 
     # The user prompt is held completely fixed. Only `system` varies.
-    question = "Should I refactor this messy code now, or ship the feature first?"
+    question = "Should I update my existing course notes or start from scratch?"
     print(f"User prompt (identical every time): {question}")
 
     for preset_name, system_prompt in SYSTEM_PRESETS.items():
@@ -187,10 +187,10 @@ def step_2_system_prompts():
 BREAKDOWN_EXAMPLES = [
     {
         "name": "Letter counting (tokenization blindness)",
-        "prompt": "How many times does the letter 'r' appear in the word 'strawberry'?",
+        "prompt": "How many times does the letter 'r' appear in the word 'tangential'?",
         "why": (
             "LLMs don't see individual letters. Text is split into sub-word "
-            "TOKENS before the model ever sees it, so 'strawberry' might be "
+            "TOKENS before the model ever sees it, so 'tangential' might be "
             "2-3 opaque chunks rather than 10 characters. Character-level "
             "counting requires reasoning the model was never directly trained "
             "to do well, and it gets worse as model size shrinks."
@@ -208,7 +208,7 @@ BREAKDOWN_EXAMPLES = [
     },
     {
         "name": "Knowledge cutoff (recent events)",
-        "prompt": "Who won the most recent Super Bowl, and what was the final score?",
+        "prompt": "Who won the most recent World Cup, and what was the final score?",
         "why": (
             "The model only knows what was in its training data, which has a "
             "cutoff date. Ask about anything after that date and it will "

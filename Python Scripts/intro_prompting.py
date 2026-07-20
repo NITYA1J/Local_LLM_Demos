@@ -154,7 +154,7 @@ def step_2_temperature():
     """
     print_header("STEP 2 — temperature (the randomness dial)")
 
-    prompt = "Write a one-sentence bedtime story about a sleepy robot."
+    prompt = "Write a one-sentence bedtime story about a sleepy professor."
     print(f"Prompt (held constant): {prompt}")
 
     for temperature in (0.0, 1.2):
@@ -237,7 +237,7 @@ def step_4_seed():
     """
     print_header("STEP 4 — seed (making randomness repeatable)")
 
-    prompt = "Invent a name and one-line backstory for a friendly dragon."
+    prompt = "Invent a name and one-line backstory for a time traveling professor."
     print(f"Prompt (held constant): {prompt}")
 
     # High temperature so the seed's effect is unmistakable.
@@ -286,7 +286,7 @@ def step_5_length_controls():
     """
     print_header("STEP 5 — num_predict and stop (controlling length)")
 
-    prompt = "List three tips for studying effectively."
+    prompt = "List three tips for using AI effectively."
     print(f"Prompt (held constant): {prompt}")
 
     # A very small cap, to make the truncation obvious.
@@ -336,7 +336,7 @@ def exercise_build_your_own_options():
         "num_predict": None,   # TODO
     }
 
-    prompt = "Give me a fun team name for a robotics club."
+    prompt = "Give me a fun team name for an environmental engineering student club."
 
     # Drop any blanks still set to None so the call works while you're
     # partway through the exercise.
